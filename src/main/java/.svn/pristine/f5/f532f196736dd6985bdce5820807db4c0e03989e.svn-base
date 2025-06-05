@@ -1,0 +1,80 @@
+package project.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.Set;
+
+@Entity
+@Table(name = "results", schema = "s409203")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ResultEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "result_sequence_generator")
+    @SequenceGenerator(
+            name = "result_sequence_generator",
+            sequenceName = "results_id_seq",
+            allocationSize = 1
+    )
+    private Long id;
+
+    @Column(name = "x_value", nullable = false, precision = 5, scale = 2)
+    private Double x;
+
+    @Column(name = "y_value", nullable = false, precision = 5, scale = 2)
+    private Double y;
+
+    @Column(name = "r_value", nullable = false, precision = 5, scale = 2)
+    private Double r;
+
+    @Column(name = "hit_result", nullable = false)
+    private Boolean hitResult;
+
+    @Column(name = "hit_time", nullable = false)
+    private LocalTime hitTime;
+
+    @Column(name = "execution_time", nullable = false, precision = 10, scale = 6)
+    private BigDecimal executionTime;
+
+    @Column(name = "result_timestamp", updatable = false, insertable = false,
+            columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime resultTimestamp;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "user_results",
+            schema = "s409203",
+            joinColumns = @JoinColumn(name = "result_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<WebUser> users;
+
+    @Transient
+    private int reverseId;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ResultEntity that = (ResultEntity) o;
+        return id != null ? id.equals(that.id) : that.id == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
+    }
+
+    public Date getResultTimestampAsDate() {
+        return resultTimestamp != null ? Date.from(resultTimestamp.atZone(ZoneId.systemDefault()).toInstant()) : null;
+    }
+}

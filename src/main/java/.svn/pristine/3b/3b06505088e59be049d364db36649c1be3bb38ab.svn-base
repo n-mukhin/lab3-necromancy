@@ -1,0 +1,38 @@
+package project;
+
+import jakarta.faces.view.ViewScoped;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.validator.ValidatorException;
+import jakarta.inject.Named;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
+
+
+@Data
+@NoArgsConstructor
+@Named("rBean")
+@ViewScoped
+public class RBean implements Serializable {
+    private Double r = 1.0;
+
+    public void validateRBeanValue(Object value) {
+        if (value == null) {
+            FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_ERROR, "Input R is required!", null);
+            throw new ValidatorException(message);
+        }
+
+        try {
+            Double rValue = Double.parseDouble(value.toString());
+            if (rValue < 1.0 || rValue > 4.0) {
+                FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_ERROR,
+                        "R must be between 1 and 4.", null);
+                throw new ValidatorException(message);
+            }
+        } catch (NumberFormatException e) {
+            FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_ERROR, "Invalid R format!", null);
+            throw new ValidatorException(message);
+        }
+    }
+}

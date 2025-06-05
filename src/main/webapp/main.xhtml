@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+<h:head>
+    <title>Main Page - Coordinate Input</title>
+    <h:outputStylesheet library="css" name="main.css" />
+    <h:outputScript library="js" name="script.js" />
+    <h:outputScript>
+        var contextPath = "#{request.contextPath}";
+    </h:outputScript>
+</h:head>
+
+<h:body>
+    <h:panelGroup rendered="#{authBean.loggedIn}">
+        <div class="header">
+            <div class="greeting">Welcome, #{authBean.username}!</div>
+            <div class="header-buttons">
+                <h:commandButton value="Logout" action="#{authBean.logout}" styleClass="header-btn" />
+                <h:commandButton value="Вернуться назад" action="index" styleClass="header-btn" />
+            </div>
+        </div>
+        <div class="container">
+        <h:form id="inputForm" prependId="false">
+            <h:panelGrid columns="2" cellpadding="5">
+                <h:outputLabel value="Coordinate X (-5; 3):" />
+                <h:panelGrid columns="9" cellpadding="5">
+                    <h:commandButton value="-5">
+                        <f:setPropertyActionListener target="#{xBean.x}" value="-5" />
+                        <f:ajax execute="@this" render="x" />
+                    </h:commandButton>
+                    <h:commandButton value="-4">
+                        <f:setPropertyActionListener target="#{xBean.x}" value="-4" />
+                        <f:ajax execute="@this" render="x" />
+                    </h:commandButton>
+                    <h:commandButton value="-3">
+                        <f:setPropertyActionListener target="#{xBean.x}" value="-3" />
+                        <f:ajax execute="@this" render="x" />
+                    </h:commandButton>
+                    <h:commandButton value="-2">
+                        <f:setPropertyActionListener target="#{xBean.x}" value="-2" />
+                        <f:ajax execute="@this" render="x" />
+                    </h:commandButton>
+                    <h:commandButton value="-1">
+                        <f:setPropertyActionListener target="#{xBean.x}" value="-1" />
+                        <f:ajax execute="@this" render="x" />
+                    </h:commandButton>
+                    <h:commandButton value="0">
+                        <f:setPropertyActionListener target="#{xBean.x}" value="0" />
+                        <f:ajax execute="@this" render="x" />
+                    </h:commandButton>
+                    <h:commandButton value="1">
+                        <f:setPropertyActionListener target="#{xBean.x}" value="1" />
+                        <f:ajax execute="@this" render="x" />
+                    </h:commandButton>
+                    <h:commandButton value="2">
+                        <f:setPropertyActionListener target="#{xBean.x}" value="2" />
+                        <f:ajax execute="@this" render="x" />
+                    </h:commandButton>
+                    <h:commandButton value="3">
+                        <f:setPropertyActionListener target="#{xBean.x}" value="3" />
+                        <f:ajax execute="@this" render="x" />
+                    </h:commandButton>
+                </h:panelGrid>
+                <h:outputLabel for="y" value="Coordinate Y (-3; 5):" />
+                <h:inputText id="y" styleClass="coords-input" value="#{yBean.y}"
+                             required="true" maxlength="7"
+                             requiredMessage="Value Y is required"
+                             validatorMessage="The value must be from -3 to 5">
+                    <f:convertNumber />
+                    <f:validateDoubleRange minimum="-3" maximum="5" />
+                </h:inputText>
+                <h:message for="y" styleClass="error-message" />
+
+                <h:inputHidden id="yHidden" value="#{yBean.y}">
+                    <f:validateDoubleRange minimum="-3" maximum="5" />
+                </h:inputHidden>
+                <h:message for="yHidden" styleClass="error-message" />
+
+                <h:outputLabel for="r" value="Coordinate R (1; 4):" />
+                <h:inputText id="r" styleClass="coords-input" value="#{rBean.r}"
+                             required="true" maxlength="7"
+                             requiredMessage="Value R is required"
+                             validatorMessage="The value must be from 1 to 4">
+                    <f:convertNumber />
+                    <f:validateDoubleRange minimum="1" maximum="4" />
+                </h:inputText>
+                <h:message for="r" styleClass="error-message" />
+            </h:panelGrid>
+
+            <h:inputHidden id="x" value="#{xBean.x}" />
+
+            <h:commandButton id="submitBtn" value="Submit" styleClass="submit-btn">
+                <f:ajax
+                        execute="@form"
+                        listener="#{resultsControllerBean.addResult}"
+                        render="@form:resultsTable @form:messages @form:plotCanvas"
+                        oncomplete="drawPlot()" />
+            </h:commandButton>
+            <h:commandButton
+                    value="Clear"
+                    action="#{resultsControllerBean.removeAllResults}"
+                    styleClass="remove-all-btn"
+                    onclick="return confirm('Are you sure you want to delete all your results?');">
+                <f:ajax
+                        execute="@this"
+                        render="resultsTable messages plotCanvas"
+                        oncomplete="drawPlot()" />
+            </h:commandButton>
+
+            <h:messages id="messages" globalOnly="true" styleClass="error-message" />
+        </h:form>
+
+        <h:dataTable id="resultsTable" var="result" value="#{resultsControllerBean.results}" varStatus="status" styleClass="results-table">
+            <h:column>
+                <f:facet name="header">
+                    <h:outputText value="ID" />
+                </f:facet>
+                <h:outputText value="#{result.reverseId}" />
+            </h:column>
+            <h:column>
+                <f:facet name="header">
+                    <h:outputText value="X" />
+                </f:facet>
+                <h:outputText value="#{result.x}" />
+            </h:column>
+            <h:column>
+                <f:facet name="header">
+                    <h:outputText value="Y" />
+                </f:facet>
+                <h:outputText value="#{result.y}" />
+            </h:column>
+            <h:column>
+                <f:facet name="header">
+                    <h:outputText value="R" />
+                </f:facet>
+                <h:outputText value="#{result.r}" />
+            </h:column>
+            <h:column>
+                <f:facet name="header">
+                    <h:outputText value="Hit Result" />
+                </f:facet>
+                <h:outputText value="#{result.hitResult ? 'Hit' : 'Miss'}" />
+            </h:column>
+            <h:column>
+                <f:facet name="header">
+                    <h:outputText value="Hit Time" />
+                </f:facet>
+                <h:outputText value="#{result.hitTime}" />
+            </h:column>
+            <h:column>
+                <f:facet name="header">
+                    <h:outputText value="Execution Time (s)" />
+                </f:facet>
+                <h:outputText value="#{result.executionTime}">
+                    <f:convertNumber pattern="0.000" />
+                </h:outputText>
+            </h:column>
+            <h:column>
+                <f:facet name="header">
+                    <h:outputText value="Timestamp" />
+                </f:facet>
+                <h:outputText value="#{result.resultTimestampAsDate}">
+                    <f:convertDateTime pattern="yyyy-MM-dd" />
+                </h:outputText>
+            </h:column>
+        </h:dataTable>
+        </div>
+        <canvas id="plotCanvas" width="2000" height="2000" onclick="handleCanvasClick(event)"></canvas>
+
+    </h:panelGroup>
+
+    <h:panelGroup rendered="#{!authBean.loggedIn}">
+        <h:outputText value="You are not logged in. Please log in to access the application." />
+        <h:link value="Go to Login" outcome="auth" />
+    </h:panelGroup>
+</h:body>
+</html>
