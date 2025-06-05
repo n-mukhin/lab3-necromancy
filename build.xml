@@ -33,11 +33,6 @@
                       includes="**/*.properties"/>
     </target>
 
-
-
-
-
-
     <!-- 3. doc — генерация MD5/SHA1 и javadoc, добавление в MANIFEST.MF -->
     <target name="doc" depends="compile">
         <echo message=">>> [doc] Generating checksums and javadoc..."/>
