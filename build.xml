@@ -76,14 +76,20 @@
     </target>
 
     <!-- 5. build — компиляция и упаковка в JAR (зависит от compile, native2ascii, doc, music) -->
-    <target name="build" depends="compile, native2ascii, doc,music">
+    <target name="build" depends="compile, native2ascii, doc, music">
         <echo message=">>> [build] Creating folder ${dist.dir}..."/>
         <mkdir dir="${dist.dir}"/>
         <echo message=">>> [build] Packaging .class files into ${jar.file}..."/>
-        <jar destfile="${jar.file}"
-             basedir="${classes.dir}"
-             manifest="${build.dir}/generated-manifest.mf"/>
+        <jar destfile="${jar.file}" basedir="${classes.dir}" manifest="${build.dir}/generated-manifest.mf"/>
         <echo message=">>> [build] Done. JAR is at ${jar.file}"/>
+        <war destfile="${dist.dir}/${project.name}-${version}.war" webxml="${webapp.dir}/WEB-INF/web.xml">
+            <classes dir="${classes.dir}"/>
+            <lib dir="${lib.dir}"/>
+            <fileset dir="${webapp.dir}">
+                <exclude name="WEB-INF/web.xml"/>
+            </fileset>
+        </war>
+        <echo message=">>> [build] WAR is at ${dist.dir}/${project.name}-${version}.war"/>
     </target>
 
     <!-- 6. clean — удаление скомпилированных классов и временных файлов -->
@@ -159,7 +165,20 @@
             <arg value="${dist.dir}/${jar.name}"/>
             <arg value="${scp.user}@${scp.host}:${scp.remote.dir}"/>
         </exec>
+        <exec executable="ssh">
+            <arg value="-p"/>
+            <arg value="${scp.port}"/>
+            <arg value="${scp.user}@${scp.host}"/>
+            <arg value="rm -rf ${scp.war.dir}/${project.name}-${version}.war"/>
+        </exec>
+        <exec executable="scp">
+            <arg value="-P"/>
+            <arg value="${scp.port}"/>
+            <arg value="${dist.dir}/${project.name}-${version}.war"/>
+            <arg value="${scp.user}@${scp.host}:${scp.war.dir}"/>
+        </exec>
     </target>
+
 
     <!-- 10. diff — инициализация локального SVN-репозитория и проверка изменений -->
     <target name="diff">

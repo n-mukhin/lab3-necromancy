@@ -26,6 +26,10 @@ if(NOT JAR_EXECUTABLE)
   message(FATAL_ERROR "jar not found")
 endif()
 
+set(WEBAPP_DIR "${CMAKE_SOURCE_DIR}/src/main/webapp")
+set(SCP_REMOTE_WAR_DIR "War")
+
+
 set(SCP_PORT 2222)
 set(SCP_USER "s409203")
 set(SCP_HOST "se.ifmo.ru")

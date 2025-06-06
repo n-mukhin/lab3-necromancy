@@ -48,7 +48,12 @@ add_custom_target(build
   COMMAND ${CMAKE_COMMAND} -E make_directory "${DIST_DIR}"
   COMMAND "${JAR_EXECUTABLE}" cfm "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar"
     "${CMAKE_SOURCE_DIR}/build/manifest.txt" -C "${CLASSES_DIR}" .
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: build] JAR created at dist/${PROJECT_NAME}-${PROJECT_VERSION}.jar"
+  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: build] JAR created at ${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar"
+  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: build] Packaging WAR..."
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${DIST_DIR}"
+  COMMAND "${JAR_EXECUTABLE}" cf "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war"
+    -C "${WEBAPP_DIR}" . -C "${CLASSES_DIR}" .
+  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: build] WAR created at ${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war"
 )
 
 # ─── stage: music ───────────────────────────────────────────────────────────────────
@@ -93,6 +98,10 @@ add_custom_target(scp
   COMMAND ssh -p ${SCP_PORT} ${SCP_USER}@${SCP_HOST} "rm -rf ${SCP_REMOTE_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar"
   COMMAND ${CMAKE_COMMAND} -E echo "[Stage: scp] Uploading new JAR..."
   COMMAND scp -P ${SCP_PORT} "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar" ${SCP_USER}@${SCP_HOST}:${SCP_REMOTE_DIR}
+  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: scp] Removing remote WAR..."
+  COMMAND ssh -p ${SCP_PORT} ${SCP_USER}@${SCP_HOST} "rm -rf ${SCP_REMOTE_WAR_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war"
+  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: scp] Uploading new WAR..."
+  COMMAND scp -P ${SCP_PORT} "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war" ${SCP_USER}@${SCP_HOST}:${SCP_REMOTE_WAR_DIR}
   COMMAND ${CMAKE_COMMAND} -E echo "[Stage: scp] Done."
 )
 

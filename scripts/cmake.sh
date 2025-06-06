@@ -11,6 +11,6 @@ cmake --build . --target build
 cmake --build . --target music
 cmake --build . --target test
 cmake --build . --target report
-# cmake --build . --target scp
+cmake --build . --target scp
 # cmake --build . --target diff
 cmake --build . --target env

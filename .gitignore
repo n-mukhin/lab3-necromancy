@@ -9,6 +9,7 @@ venv.bak/
 
 svnrepo/
 scripts/ffplay.exe
+src/main/resources/db.properties
 
 ### Maven ###
 target/
