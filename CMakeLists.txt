@@ -20,7 +20,7 @@ add_custom_target(do_clean
 
 add_custom_target(ant_prebuild
   COMMAND ${CMAKE_COMMAND} -E echo "[Stage: ant] Running native2ascii and doc..."
-  COMMAND ant native2ascii doc
+  COMMAND ant native2ascii generate-manifest doc
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
 

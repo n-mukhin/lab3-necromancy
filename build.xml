@@ -51,12 +51,19 @@
         <javadoc destdir="${build.dir}/javadoc"
                  sourcepath="${src.dir}"
                  packagenames="**">
+            <arg line="-J-Xms128m -J-Xmx512m"/>
             <classpath>
                 <fileset dir="${lib.dir}">
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
         </javadoc>
+    </target>
+
+
+    <target name="generate-manifest">
+        <echo message=">>> [manifest] Generating manifest..."/>
+        <mkdir dir="${build.dir}"/>
         <manifest file="${build.dir}/generated-manifest.mf">
             <attribute name="Manifest-Version"       value="1.0"/>
             <attribute name="Implementation-Version" value="${version}"/>
@@ -75,8 +82,8 @@
         </exec>
     </target>
 
-    <!-- 5. build — компиляция и упаковка в JAR (зависит от compile, native2ascii, doc, music) -->
-    <target name="build" depends="compile, native2ascii, doc, music">
+    <!-- 5. build — компиляция и упаковка в JAR (зависит от compile, native2ascii) -->
+    <target name="build" depends="compile, native2ascii, doc, generate-manifest">
         <echo message=">>> [build] Creating folder ${dist.dir}..."/>
         <mkdir dir="${dist.dir}"/>
         <echo message=">>> [build] Packaging .class files into ${jar.file}..."/>
@@ -102,10 +109,16 @@
     <!-- 7. test — запуск JUnit-тестов (зависит от build) -->
     <target name="compile-tests">
         <mkdir dir="${build.dir}/test-classes"/>
-        <javac srcdir="src/test/java"
-               destdir="${build.dir}/test-classes"
-               includeantruntime="false"
-               encoding="UTF-8">
+        <javac
+                srcdir="src/test/java"
+                destdir="${build.dir}/test-classes"
+                includeantruntime="false"
+                encoding="UTF-8"
+                fork="true">
+
+            <compilerarg value="-J-Xmx512m"/>
+            <compilerarg value="-J-Xms128m"/>
+
             <classpath>
                 <pathelement path="${classes.dir}"/>
                 <fileset dir="${lib.dir}">
@@ -119,6 +132,9 @@
         <echo message=">>> [test] Running JUnit tests..."/>
         <mkdir dir="${build.dir}/test-results"/>
         <junit printsummary="on" haltonfailure="true" fork="true">
+            <jvmarg value="-Xmx512m"/>
+            <jvmarg value="-Xms128m"/>
+
             <classpath>
                 <pathelement path="${classes.dir}"/>
                 <pathelement path="${build.dir}/test-classes"/>
@@ -126,30 +142,39 @@
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
+
             <batchtest todir="${build.dir}/test-results">
                 <fileset dir="src/test/java">
                     <include name="**/*Test.java"/>
                 </fileset>
             </batchtest>
+
             <formatter type="plain" usefile="false"/>
             <formatter type="xml"/>
         </junit>
+
     </target>
 
 
     <!-- 8. report — сохранение JUnit-отчёта и commit в Git (зависит от test) -->
     <target name="report" depends="test">
         <echo message=">>> [report] Committing JUnit XML report to Git..."/>
+
         <exec executable="sh">
+            <env key="_JAVA_OPTIONS" value="-Xmx512m -Xms128m"/>
             <arg value="-c"/>
             <arg value="git add ${build.dir}/test-results/*.xml || echo '[report] git not found, skipping'"/>
         </exec>
+
         <exec executable="sh">
+            <env key="_JAVA_OPTIONS" value="-Xmx512m -Xms128m"/>
             <arg value="-c"/>
             <arg value="git commit -m &quot;Add JUnit test report&quot; || echo '[report] no changes or git not found'"/>
         </exec>
+
         <echo message=">>> [report] Done."/>
     </target>
+
 
     <!-- 9. scp — перемещение собранного JAR на удалённый сервер (зависит от build) -->
     <target name="scp">

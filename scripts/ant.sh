@@ -5,6 +5,6 @@ ant compile || ant history
 ant build
 ant test
 ant report
-ant scp
+# ant scp
 # ant diff
 ant env
