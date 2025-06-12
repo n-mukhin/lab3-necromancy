@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+<h:head>
+    <title>Start Page</title>
+    <h:outputStylesheet library="css" name="index.css" />
+    <script>
+        function updateClock() {
+            const clockElement = document.getElementById('clock');
+            const now = new Date();
+            const timeString = now.toLocaleString();
+            clockElement.innerHTML = timeString;
+        }
+        setInterval(updateClock, 7000);
+        window.onload = updateClock;
+    </script>
+</h:head>
+
+<h:body>
+    <div class="main-container">
+        <div class="header">
+            ФИО: Мухин Никита Денисович<br/>
+            Номер группы: P3223<br/>
+            Номер варианта: 1
+        </div>
+
+        <div class="clock">
+            <span id="clock"></span>
+        </div>
+
+        <h:form>
+            <h:commandButton styleClass="navigate-button" value="Перейти на страницу авторизации" action="auth" />
+        </h:form>
+    </div>
+</h:body>
+</html>
