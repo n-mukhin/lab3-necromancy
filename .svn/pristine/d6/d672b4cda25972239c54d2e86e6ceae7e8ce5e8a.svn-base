@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html">
+<h:head>
+    <title>вход</title>
+    <h:outputStylesheet library="css" name="auth.css" />
+</h:head>
+<h:body>
+    <div class="main-container">
+        <h:form>
+            <div class="mode-switch">
+                <h:commandButton styleClass="toggle-button" value="Login Mode" action="#{authBean.switchToLoginMode}" rendered="#{!authBean.loginMode}" />
+                <h:commandButton styleClass="toggle-button" value="Register Mode" action="#{authBean.switchToRegistrationMode}" rendered="#{authBean.loginMode}" />
+            </div>
+        </h:form>
+
+        <h:form>
+            <div class="form-container">
+                <h:panelGroup rendered="#{authBean.loginMode}">
+                    <h:outputText value="Login" styleClass="form-title" />
+                    <h:panelGrid columns="2" styleClass="input-grid">
+                        <h:outputLabel for="username" value="Username:" />
+                        <h:inputText id="username" value="#{authBean.username}" required="#{authBean.loginMode}" styleClass="input-field" />
+
+                        <h:outputLabel for="password" value="Password:" />
+                        <h:inputSecret id="password" value="#{authBean.password}" required="#{authBean.loginMode}" styleClass="input-field" />
+
+                        <h:commandButton styleClass="submit-button" value="Login" action="#{authBean.login}" />
+                    </h:panelGrid>
+                    <h:messages globalOnly="true" styleClass="messages" />
+                </h:panelGroup>
+
+                <h:panelGroup rendered="#{!authBean.loginMode}">
+                    <h:outputText value="Register" styleClass="form-title" />
+                    <h:panelGrid columns="2" styleClass="input-grid">
+                        <h:outputLabel for="regUsername" value="Username:" />
+                        <h:inputText id="regUsername" value="#{authBean.registrationUsername}" required="#{!authBean.loginMode}" styleClass="input-field" />
+
+                        <h:outputLabel for="regPassword" value="Password:" />
+                        <h:inputSecret id="regPassword" value="#{authBean.registrationPassword}" required="#{!authBean.loginMode}" styleClass="input-field" />
+
+                        <h:commandButton styleClass="submit-button" value="Register" action="#{authBean.register}" />
+                    </h:panelGrid>
+                    <h:messages globalOnly="true" styleClass="messages" />
+                </h:panelGroup>
+            </div>
+        </h:form>
+    </div>
+</h:body>
+</html>

@@ -9,30 +9,43 @@ find_program(FFPLAY_EXECUTABLE
     PATHS "${CMAKE_SOURCE_DIR}/scripts" ENV PATH
 )
 
+# do_clean
 add_custom_target(do_clean
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: clean] Removing build directories..."
+  COMMAND ${CMAKE_COMMAND} -E echo "[do_clean] Removing build dirs"
   COMMAND ${CMAKE_COMMAND} -E remove_directory "${CLASSES_DIR}"
   COMMAND ${CMAKE_COMMAND} -E remove_directory "${TEST_CLASSES_DIR}"
   COMMAND ${CMAKE_COMMAND} -E remove_directory "${DIST_DIR}"
   COMMAND ${CMAKE_COMMAND} -E remove_directory "${BUILD_DIR}/test-results"
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: clean] Done."
+  COMMAND ${CMAKE_COMMAND} -E echo "[do_clean] Done"
 )
 
-add_custom_target(ant_prebuild
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: ant] Running native2ascii and doc..."
-  COMMAND ant native2ascii generate-manifest doc
+# native2ascii
+add_custom_target(native2ascii
+  COMMAND ${CMAKE_COMMAND} -E echo "[native2ascii] Converting resource bundles"
+  COMMAND ant native2ascii
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
 
-add_custom_target(compile
-  DEPENDS ant_prebuild
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: compile] Compiling main sources..."
-  COMMAND ${CMAKE_COMMAND} -E make_directory "${CLASSES_DIR}"
-  COMMAND javac -encoding UTF-8 -d "${CLASSES_DIR}" -cp "${CLASSPATH}" ${JAVA_SOURCES}
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: compile] Completed."
+# doc
+add_custom_target(doc
+  COMMAND ${CMAKE_COMMAND} -E echo "[doc] Generating manifest and javadoc"
+  COMMAND ant doc
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
 
+# compile
+add_custom_target(compile
+  DEPENDS native2ascii
+  COMMAND ${CMAKE_COMMAND} -E echo "[compile] Compiling Java sources"
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CLASSES_DIR}"
+  COMMAND javac -J-Xms128m -J-Xmx512m -encoding UTF-8 -d "${CLASSES_DIR}"
+        -cp "${CLASSPATH}" ${JAVA_SOURCES}
+  COMMAND ${CMAKE_COMMAND} -E echo "[compile] Done"
+)
+
+# generate_manifest
 add_custom_target(generate_manifest
+  DEPENDS compile
   COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/build"
   COMMAND ${CMAKE_COMMAND} -E echo "Manifest-Version: 1.0"
     > "${CMAKE_SOURCE_DIR}/build/manifest.txt"
@@ -40,28 +53,65 @@ add_custom_target(generate_manifest
     >> "${CMAKE_SOURCE_DIR}/build/manifest.txt"
 )
 
-
-# ─── stage: build ───────────────────────────────────────────────────────────────────
+# build
 add_custom_target(build
   DEPENDS compile generate_manifest
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: build] Packaging JAR..."
+  COMMAND ${CMAKE_COMMAND} -E echo "[build] Packaging JAR"
   COMMAND ${CMAKE_COMMAND} -E make_directory "${DIST_DIR}"
-  COMMAND "${JAR_EXECUTABLE}" cfm "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar"
-    "${CMAKE_SOURCE_DIR}/build/manifest.txt" -C "${CLASSES_DIR}" .
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: build] JAR created at ${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar"
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: build] Packaging WAR..."
-  COMMAND ${CMAKE_COMMAND} -E make_directory "${DIST_DIR}"
-  COMMAND "${JAR_EXECUTABLE}" cf "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war"
-    -C "${WEBAPP_DIR}" . -C "${CLASSES_DIR}" .
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: build] WAR created at ${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war"
+  COMMAND "${JAR_EXECUTABLE}" -J-Xmx512m cfm
+    "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar"
+    "${CMAKE_SOURCE_DIR}/build/manifest.txt"
+    -C "${CLASSES_DIR}" .
+  COMMAND ${CMAKE_COMMAND} -E echo "[build] Packaging WAR"
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${DIST_DIR}/war-staging"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${WEBAPP_DIR}" "${DIST_DIR}/war-staging"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CLASSES_DIR}" "${DIST_DIR}/war-staging/WEB-INF/classes"
+  COMMAND "${JAR_EXECUTABLE}" -J-Xmx512m cf
+    "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war"
+    -C "${DIST_DIR}/war-staging" .
+  COMMAND ${CMAKE_COMMAND} -E echo "[build] Artifacts in ${DIST_DIR}"
 )
 
-# ─── stage: music ───────────────────────────────────────────────────────────────────
+
+# test
+add_custom_target(test
+  DEPENDS build
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E echo "[test] Running JUnit via Ant"
+  COMMAND ant test
+  COMMAND ${CMAKE_COMMAND} -E echo "[test] Tests complete"
+)
+
+# report
+add_custom_target(generate_report
+  DEPENDS test
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E echo "[report] Generating JUnit XML reports via Ant"
+  COMMAND ant report
+)
+
+add_custom_target(report
+  DEPENDS generate_report
+  COMMAND ${CMAKE_COMMAND} -E echo "[commit_reports] Git status of XML reports"
+  COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" git status -s ${BUILD_DIR}/test-results/*.xml
+  COMMAND ${CMAKE_COMMAND} -E echo "[commit_reports] Forcibly staging XML reports"
+  COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" git add -f ${BUILD_DIR}/test-results/*.xml
+  COMMAND ${CMAKE_COMMAND} -E echo "[commit_reports] Diff of staged changes"
+  COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" git --no-pager diff --staged --stat
+  COMMAND ${CMAKE_COMMAND} -E echo "[commit_reports] Committing XML reports"
+  COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" git commit -m "chore: add JUnit XML reports"
+  COMMAND ${CMAKE_COMMAND} -E echo "[commit_reports] Latest commit details"
+  COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" git log -1 --stat
+)
+
+# music
 add_custom_target(music
   DEPENDS build
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: build-music] Playing music..."
+  COMMAND ${CMAKE_COMMAND} -E echo "[music] Playing build soundtrack"
   COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --magenta
-    $<$<BOOL:${FFPLAY_EXECUTABLE}>:"[Stage: build-music] Running ffplay":"[Stage: build-music] Skipping music: ffplay not found">
+    $<$<BOOL:${FFPLAY_EXECUTABLE}>:"[music] ffplay found":"[music] ffplay missing, skipping">
   COMMAND
     $<$<BOOL:${FFPLAY_EXECUTABLE}>:${FFPLAY_EXECUTABLE}>
     $<$<BOOL:${FFPLAY_EXECUTABLE}>:-nodisp>
@@ -69,72 +119,121 @@ add_custom_target(music
     $<$<BOOL:${FFPLAY_EXECUTABLE}>:${CMAKE_SOURCE_DIR}/resources/divine-melody.wav>
 )
 
-
-add_custom_target(compile-tests
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: compile-tests] Compiling test sources..."
-  COMMAND ${CMAKE_COMMAND} -E make_directory "${TEST_CLASSES_DIR}"
-  COMMAND javac -encoding UTF-8 -d "${TEST_CLASSES_DIR}" -cp "${CLASSPATH}${CP_SEP}${CLASSES_DIR}" ${TEST_SOURCES}
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: compile-tests] Completed."
-)
-
-add_custom_target(test
-  DEPENDS compile-tests
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: test] Running JUnit tests via Ant..."
-  COMMAND ant test
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: test] Ant test target finished."
-)
-
-add_custom_target(report
-  DEPENDS test
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: report] Committing XML reports via Ant..."
-  COMMAND ant report
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: report] Ant report target finished."
-)
-
+# scp
 add_custom_target(scp
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: scp] Removing remote JAR..."
-  COMMAND ssh -p ${SCP_PORT} ${SCP_USER}@${SCP_HOST} "rm -rf ${SCP_REMOTE_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar"
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: scp] Uploading new JAR..."
-  COMMAND scp -P ${SCP_PORT} "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar" ${SCP_USER}@${SCP_HOST}:${SCP_REMOTE_DIR}
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: scp] Removing remote WAR..."
-  COMMAND ssh -p ${SCP_PORT} ${SCP_USER}@${SCP_HOST} "rm -rf ${SCP_REMOTE_WAR_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war"
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: scp] Uploading new WAR..."
-  COMMAND scp -P ${SCP_PORT} "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war" ${SCP_USER}@${SCP_HOST}:${SCP_REMOTE_WAR_DIR}
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: scp] Done."
+  DEPENDS build
+  COMMAND ${CMAKE_COMMAND} -E echo "[scp] Uploading JAR & WAR"
+  COMMAND ssh -p ${SCP_PORT} ${SCP_USER}@${SCP_HOST}
+    rm -f ${SCP_REMOTE_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar
+  COMMAND scp -P ${SCP_PORT}
+    "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.jar"
+    ${SCP_USER}@${SCP_HOST}:${SCP_REMOTE_DIR}
+  COMMAND ssh -p ${SCP_PORT} ${SCP_USER}@${SCP_HOST}
+    rm -f ${SCP_REMOTE_WAR_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war
+  COMMAND scp -P ${SCP_PORT}
+    "${DIST_DIR}/${PROJECT_NAME}-${PROJECT_VERSION}.war"
+    ${SCP_USER}@${SCP_HOST}:${SCP_REMOTE_WAR_DIR}
+  COMMAND ${CMAKE_COMMAND} -E echo "[scp] Done"
 )
 
-add_custom_target(diff
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: diff] Checking/creating SVN repo..."
-  COMMAND cmd /C if not exist "${CMAKE_SOURCE_DIR}\\svnrepo" svnadmin create "${CMAKE_SOURCE_DIR}\\svnrepo"
 
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: diff] Ensuring SVN trunk exists..."
-  COMMAND cmd /C svn list "file:///${CMAKE_SOURCE_DIR}/svnrepo/trunk" >nul 2>nul || svn import "${SRC_DIR}" "file:///${CMAKE_SOURCE_DIR}/svnrepo/trunk" -m "Initial import"
 
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: diff] Resetting working copy..."
-  COMMAND ${CMAKE_COMMAND} -E remove_directory "${SRC_DIR}"
-  COMMAND ${CMAKE_COMMAND} -E make_directory "${SRC_DIR}"
+# diff
+find_program(SVNADMIN_EXECUTABLE svnadmin)
+if(NOT SVNADMIN_EXECUTABLE)
+  message(FATAL_ERROR "svnadmin not found in PATH")
+endif()
 
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: diff] Checking out from SVN..."
-  COMMAND cmd /C svn checkout "file:///${CMAKE_SOURCE_DIR}/svnrepo/trunk" "${SRC_DIR}"
+if(NOT EXISTS "${SVN_REPO_DIR}/format")
+  execute_process(
+    COMMAND ${SVNADMIN_EXECUTABLE} create "${SVN_REPO_DIR}"
+    RESULT_VARIABLE _svn_rv
+  )
+  if(NOT _svn_rv EQUAL 0)
+    message(FATAL_ERROR "Failed to create SVN repo")
+  endif()
+endif()
 
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: diff] Committing changes (if any)..."
-  COMMAND cmd /C svn commit "${SRC_DIR}" -m "Auto-commit by CMake: updating modified Java classes" --quiet || echo [Stage: diff] No changes to commit.
+if(WIN32)
+  add_custom_target(diff
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+    COMMAND cmd /C "if not exist \"${CLASSES_OUTPUT_DIR}\" (echo No diffs: classes directory not present.& exit /b 0)"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SVN_REPO_DIR}"
+    COMMAND cmd /C "if not exist \"${SVN_REPO_DIR}\\format\" svnadmin create \"${SVN_REPO_DIR}\""
+    COMMAND cmd /C "svn mkdir --parents ${SVN_REPO_URL}/trunk/classes -m auto 2>nul || echo path exists"
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${SVN_WC_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SVN_WC_DIR}"
+    COMMAND cmd /C "svn checkout ${SVN_REPO_URL}/trunk/classes . 2>nul || svn update ."
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${SVN_WC_DIR}/classes"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CLASSES_OUTPUT_DIR}" "${SVN_WC_DIR}/classes"
+    COMMAND cmd /C "svn add --force classes 2>nul || echo already versioned"
+    COMMAND cmd /C "svn commit classes -m auto 2>nul || echo No changes to commit"
+    COMMAND cmd /C "svn diff classes || echo No diffs"
+  )
+else()
+  add_custom_target(diff
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SVN_REPO_DIR}"
+
+    COMMAND - svn mkdir --parents "${SVN_REPO_URL}/trunk/classes" -m auto
+
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${SVN_WC_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SVN_WC_DIR}"
+
+    COMMAND - svn checkout "${SVN_REPO_URL}/trunk/classes" "${SVN_WC_DIR}"
+    COMMAND - svn update "${SVN_WC_DIR}"
+
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${SVN_WC_DIR}/classes"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CLASSES_OUTPUT_DIR}" "${SVN_WC_DIR}/classes"
+
+    COMMAND ${CMAKE_COMMAND} -E chdir "${SVN_WC_DIR}" svn add --force classes
+    COMMAND ${CMAKE_COMMAND} -E chdir "${SVN_WC_DIR}" svn commit -m auto classes
+
+    COMMAND ${CMAKE_COMMAND} -E chdir "${SVN_WC_DIR}" svn diff classes
+  )
+endif()
+
+# history
+set(GOOD_TAG "v0.5")
+
+execute_process(
+  COMMAND git rev-parse HEAD
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  OUTPUT_VARIABLE HEAD_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-add_custom_target(history
-  COMMAND ${CMAKE_COMMAND} -E echo "[Stage: history] Attempting compile; if it fails, rollback via Git..."
-  COMMAND sh -c "cmake --build \"${CMAKE_BINARY_DIR}\" --target compile || true"
-  COMMAND sh -c "if [ ! -d \"${CLASSES_DIR}\" ] && git rev-parse --is-inside-work-tree &> /dev/null; then \
-                    ${CMAKE_COMMAND} -E echo \"[Stage: history] Compile failed; checking out previous Git revision...\" && \
-                    git checkout HEAD~1 && \
-                    cmake --build \"${CMAKE_BINARY_DIR}\" --target history; \
-                 else \
-                    echo \"[Stage: history] Compile succeeded or Git not present; no rollback.\"; \
-                 fi"
+execute_process(
+  COMMAND git rev-parse "${GOOD_TAG}"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  OUTPUT_VARIABLE GOOD_HASH
+  RESULT_VARIABLE TAG_RES
+  OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+if(NOT TAG_RES EQUAL 0)
+  message(FATAL_ERROR "[history] required tag ${GOOD_TAG} not found")
+endif()
+
+if(HEAD_HASH STREQUAL GOOD_HASH)
+  message(STATUS "[history] already at ${GOOD_TAG} (${GOOD_HASH}) – no rollback needed")
+  add_custom_target(history
+    COMMENT "[history] already at ${GOOD_TAG}"
+  )
+else()
+  add_custom_target(history
+    VERBATIM
+    COMMENT "[history] rollback to ${GOOD_TAG} (${GOOD_HASH})"
+    COMMAND ${CMAKE_COMMAND} -E echo "[history] rolling back to ${GOOD_TAG} (${GOOD_HASH})"
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/gitwc"
+    COMMAND git clone --no-checkout "${CMAKE_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/gitwc"
+    COMMAND git -C "${CMAKE_BINARY_DIR}/gitwc" checkout "${GOOD_HASH}"
+    COMMAND ${CMAKE_COMMAND} -E echo "[history] checked out ${GOOD_TAG} (${GOOD_HASH})"
+    COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target compile
+  )
+endif()
+
+
+# env
 add_custom_target(env
   COMMAND ${CMAKE_COMMAND} -E echo "[Stage: env] Reading alternative environments..."
   COMMAND ${CMAKE_COMMAND} -E remove_directory "${BUILD_DIR}/env-classes"

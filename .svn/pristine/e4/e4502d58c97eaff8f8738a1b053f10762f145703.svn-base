@@ -1,0 +1,36 @@
+login.title=Вход
+mode.switch.login=Режим входа
+mode.switch.register=Режим регистрации
+label.username=Имя пользователя:
+label.password=Пароль:
+button.login=Войти
+button.register=Зарегистрироваться
+
+index.title=Начальная страница
+button.goToAuth=Перейти на страницу входа
+header.fullName=ФИО: Мухин Никита Денисович
+header.groupNumber=Номер группы: P3223
+header.variantNumber=Номер варианта: 1
+
+main.title=Главная страница – Ввод координат
+greeting=Добро пожаловать, {0}!
+button.logout=Выйти
+button.back=Назад
+label.coordX=Координата X (–5; 3):
+label.coordY=Координата Y (–3; 5):
+label.coordR=Радиус R (1; 4):
+
+table.header.id=ID
+table.header.x=X
+table.header.y=Y
+table.header.r=R
+table.header.hitResult=Результат попадания
+table.header.hitTime=Время проверки
+table.header.executionTime=Время выполнения (с)
+table.header.timestamp=Метка времени
+
+result.hit=Попадание
+result.miss=Промах
+
+message.notLoggedIn=Вы не вошли в систему. Пожалуйста, авторизуйтесь для доступа к приложению.
+link.goToLogin=Перейти к входу
